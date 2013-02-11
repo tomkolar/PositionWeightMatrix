@@ -299,12 +299,6 @@ private:
 	//		highNonCodingSiteScores - will be populated with scores
 	//							      that are >= 10.0
 	void calculateSiteScoreCounts();
-
-	// bool isStartOfCodingSequence(int aLocation, bool isComplement)
-	//  Purpose:
-	//		Returns true if aLocation is the start on one of the known
-	//		coding sequences for this genbank file
-	bool isStartOfCodingSequence(int aLocation, bool isComplement);
 	
 };
 

@@ -18,7 +18,7 @@ using namespace std;
 
 int main( int argc, char *argv[] ) {
 
-/*	// Check that file name was  entered as argument
+	// Check that file name was  entered as argument
 	if (argc < 2) {
 		cout << "Invalid # of arguments\n";
 		cout << "usage: pwm genbankFile\n";
@@ -29,13 +29,13 @@ int main( int argc, char *argv[] ) {
 
 	// Get Genbank File name
 	string genbankFileName = argv[1];
-*/
+/*
 	// Test file name
 	string genbankFileName = "c:/Users/kolart/Documents/Genome540/Assignment4/NC_004317.gbk";
 
 	// Set Genbank File name
 //	string genbankFileName = "c:/Users/kolart/Documents/Genome540/Assignment4/NC_004353.gbk";
-
+*/
 	// Create the Genbank File object
 	GenbankFile* genbankFile = new GenbankFile(genbankFileName);
 	cout << genbankFile->firstLineResultString();

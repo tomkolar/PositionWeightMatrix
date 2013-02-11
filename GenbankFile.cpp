@@ -290,8 +290,14 @@ string GenbankFile::siteScoreCountsResultString() {
 	// Header
 	ss <<  "    <result type=\"score histogram\" positions=\"all\" file=\"" << fileName << "\">\n";
 
+	// Counts < -50
+	ss << "      ";
+	ss << "(1.t.-50," << siteScoreCounts[-51] << ")";
+	ss << "\n";
+
+
 	// Counts
-	for (int i = -20; i <= 20; i++) {
+	for (int i = -50; i <= 50; i++) {
 		int count = siteScoreCounts[i] ;
 		if (count > 0) {
 			ss << "      ";
@@ -319,6 +325,8 @@ string GenbankFile::siteScoreCountsResultString() {
 //		Genbank File has been read and sequence has been populated
 string GenbankFile::highNonCodingSiteScoresResultString() {
 	stringstream ss;
+	ss.setf(ios::fixed,ios::floatfield);
+	ss.precision(3);
 
 	// Header
 	ss <<  "    <result type=\"position list\" file=\"" << fileName << "\">\n";
@@ -534,7 +542,7 @@ void GenbankFile::calculateBackgroundCounts() {
 	backgroundCounts['n'] = 0;
 
 	calculateBackgroundCounts(sequence);
-	calculateBackgroundCounts(complement);
+//	calculateBackgroundCounts(complement);
 }
 
 // calculateBackgroundCounts(string& aSequence)
@@ -603,7 +611,7 @@ void GenbankFile::calculateSpliceSiteCounts() {
 	for (GenbankCodingSequence codingSequence : codingSequences) {
 		
 		// Get the location on the sequence (or complement) of the splice sites 
-		map<int, int>& spliceSiteLocations = codingSequence.spliceSiteLocations();
+		const map<int, int>& spliceSiteLocations = codingSequence.spliceSiteLocations();
 
 		// Iterate through the splice sites
 		for (int i = -10; i <= 10; i++) {
@@ -718,7 +726,7 @@ void GenbankFile::calculateSpliceSiteScoreCounts() {
 	for (GenbankCodingSequence codingSequence : codingSequences) {
 
 		// Get the location on the sequence (or complement) of the splice sites 
-		map<int, int>& spliceSiteLocations = codingSequence.spliceSiteLocations();
+		const map<int, int>& spliceSiteLocations = codingSequence.spliceSiteLocations();
 
 		// Iterate through the splice sites and calculate score
 		double score = 0;
@@ -754,7 +762,7 @@ void GenbankFile::calculateSpliceSiteScoreCounts() {
 void GenbankFile::calculateSiteScoreCounts() {
 
 	// Initialize counts
-	for (int i = -20; i <= 20; i++) {
+	for (int i = -51; i <= 50; i++) {
 		siteScoreCounts[i] = 0;
 	}
 
@@ -768,14 +776,16 @@ void GenbankFile::calculateSiteScoreCounts() {
 			forwardStartLocs.insert(codingSequence.start());
 	}
 
-	for (int seqLoc = 10; seqLoc < (int)sequence.length() - 10; seqLoc++) {
+	int seqLength = sequence.length();
+	for (int seqLoc = 11; seqLoc <= seqLength - 10; seqLoc++) {
 
 		// Forward Strand
 		double score = 0;
 		for (int offset = -10; offset <= 10; offset++) {
 
 			// Find the residue that is at the site
-			char residue = sequence.at(seqLoc + offset);
+			int residueLoc = seqLoc + offset  - 1;
+			char residue = sequence.at(residueLoc);
 
 			// Calculate the score (only for known residues)
 			if (residue == 'a' || residue == 'c' || residue == 'g' || residue == 't') 
@@ -784,13 +794,15 @@ void GenbankFile::calculateSiteScoreCounts() {
 
 		// Add to counts
 		int bin = floor(score);
+		if (bin <= -50)
+			bin = -51;
 		siteScoreCounts[bin]++;
 
 		// Add to highNonCodingSiteScores if > 10.0
 		if (score >= 10.0) {
 			if (forwardStartLocs.find(seqLoc) == forwardStartLocs.end()) {
 				SiteScore siteScore;
-				siteScore.site = seqLoc + 1;
+				siteScore.site = seqLoc;
 				siteScore.strand = 0;
 				siteScore.score = score;
 				highNonCodingSiteScores.push_back(siteScore);
@@ -802,7 +814,8 @@ void GenbankFile::calculateSiteScoreCounts() {
 		for (int offset = -10; offset <= 10; offset++) {
 
 			// Find the residue that is at the site
-			char residue = complement.at(seqLoc - offset);
+			int residueLoc = seqLoc - offset  - 1;
+			char residue = complement.at(residueLoc);
 
 			// Calculate the score (only for known residues)
 			if (residue == 'a' || residue == 'c' || residue == 'g' || residue == 't') 
@@ -811,13 +824,15 @@ void GenbankFile::calculateSiteScoreCounts() {
 
 		// Add to counts
 		bin = floor(score);
+		if (bin <= -50)
+			bin = -51;
 		siteScoreCounts[bin]++;
 
 		// Add to highNonCodingSiteScores if > 10.0
 		if (score >= 10.0) {
 			if (complementStartLocs.find(seqLoc) == complementStartLocs.end()) {
 				SiteScore siteScore;
-				siteScore.site = seqLoc + 1;
+				siteScore.site = seqLoc;
 				siteScore.strand = 1;
 				siteScore.score = score;
 				highNonCodingSiteScores.push_back(siteScore);
@@ -827,25 +842,4 @@ void GenbankFile::calculateSiteScoreCounts() {
 
 }
 
-// bool isStartOfCodingSequence(int aLocation)
-//  Purpose:
-//		Returns true if aLocation is the start on one of the known
-//		coding sequences for this genbank file
-bool GenbankFile::isStartOfCodingSequence(int aLocation, bool isComplement) {
-	bool result = false;
-
-	for (GenbankCodingSequence codingSequence : codingSequences) {
-		if (isComplement && codingSequence.isComplement() && (aLocation == codingSequence.start())) {
-			result = true;
-			break;
-		}
-
-		if (!isComplement && !codingSequence.isComplement() && (aLocation == codingSequence.start())) {
-			result = true;
-			break;
-		}
-	}
-
-	return result;
-}
 
